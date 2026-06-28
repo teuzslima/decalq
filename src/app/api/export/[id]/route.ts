@@ -27,7 +27,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     case "pdf": out = await exportPdf(resizedPng, size); contentType = "application/pdf"; ext = "pdf"; break;
     default:    out = resizedPng; contentType = "image/png"; ext = "png";
   }
-  return new NextResponse(out, {
+  return new NextResponse(new Uint8Array(out), {
     headers: {
       "Content-Type": contentType,
       "Content-Disposition": `attachment; filename="stencil-${gen!.id}.${ext}"`,
