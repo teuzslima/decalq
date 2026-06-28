@@ -1,6 +1,22 @@
 import { prisma } from "./db";
 
 const ROOT_DOMAIN = process.env.ROOT_DOMAIN ?? "localhost:3000";
+// Cache em memória por host (evita ir ao banco em toda página). TTL curto.
+const _tenantCache = new Map<string, { v: ResolvedTenant | null; exp: number }>();
+const _TENANT_TTL = 60_000;
+
+export async function resolveTenantByHost(
+  host: string | null
+): Promise<ResolvedTenant | null> {
+  if (!host) return null;
+  const key = host.toLowerCase();
+  const hit = _tenantCache.get(key);
+  if (hit && hit.exp > Date.now()) return hit.v;
+  const v = await resolveTenantUncached(host);
+  _tenantCache.set(key, { v, exp: Date.now() + _TENANT_TTL });
+  return v;
+}
+
 
 export type ResolvedTenant = {
   id: string;
@@ -18,7 +34,7 @@ export type ResolvedTenant = {
  *
  * Resultado é cacheável; em produção, ponha um cache (KV/Redis) por host.
  */
-export async function resolveTenantByHost(
+async function resolveTenantUncached(
   host: string | null
 ): Promise<ResolvedTenant | null> {
   if (!host) return null;

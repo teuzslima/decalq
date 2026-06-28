@@ -3,15 +3,16 @@ import { resolveTenantByHost } from "@/server/tenant";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { withTenant } from "@/server/db";
+import { cache } from "react";
 
 /** Resolve o tenant atual a partir do host (setado pelo middleware). */
-export async function getCurrentTenant() {
+export const getCurrentTenant = cache(async () => {
   const host = headers().get("x-tenant-host") ?? headers().get("host");
   const tenant = await resolveTenantByHost(host);
   if (!tenant) throw new Error("Tenant não encontrado para este domínio");
   if (tenant.status === "suspended") throw new Error("Estúdio suspenso");
   return tenant;
-}
+});
 
 /** Sessão do Supabase Auth (JWT em cookie). */
 export function getSupabase() {
