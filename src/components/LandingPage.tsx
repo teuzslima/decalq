@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import Pricing from "@/components/Pricing";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 32 },
@@ -361,76 +362,7 @@ export default function LandingPage() {
       </section>
 
       {/* PRICING */}
-      <section id="plano" style={{ padding: "6rem 2rem" }}>
-        <Section style={{ maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
-          <FadeUp style={{ marginBottom: "3rem" }}>
-            <div style={{ fontSize: 13, color: "#a78bfa", fontWeight: 500, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              Sem surpresas
-            </div>
-            <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", fontWeight: 700, letterSpacing: "-0.02em" }}>
-              Um plano, para o seu estúdio
-            </h2>
-          </FadeUp>
-
-          <FadeUp delay={0.1}>
-            <motion.div
-              whileHover={{ boxShadow: "0 0 60px rgba(124,58,237,0.2)" }}
-              style={{
-                background: "#161618", border: "1px solid rgba(124,58,237,0.3)",
-                borderRadius: 20, padding: "2.5rem", position: "relative", overflow: "hidden",
-              }}
-            >
-              <div style={{
-                position: "absolute", top: 0, right: 0, left: 0, height: 2,
-                background: "linear-gradient(90deg, #7C3AED, #60a5fa)",
-              }} />
-              <div style={{
-                display: "inline-block", background: "rgba(124,58,237,0.15)", color: "#a78bfa",
-                fontSize: 12, fontWeight: 600, padding: "4px 14px", borderRadius: 100,
-                marginBottom: "1.5rem", border: "1px solid rgba(124,58,237,0.25)",
-              }}>
-                MVP — Plano Estúdio
-              </div>
-              <div style={{ marginBottom: "0.5rem" }}>
-                <span style={{ fontSize: "3rem", fontWeight: 700, letterSpacing: "-0.03em" }}>R$&nbsp;49</span>
-                <span style={{ fontSize: "1.5rem", fontWeight: 500, color: "#a1a1aa" }}>,90</span>
-                <span style={{ fontSize: 14, color: "#71717a", marginLeft: 6 }}>/mês</span>
-              </div>
-              <p style={{ color: "#71717a", fontSize: 14, marginBottom: "2rem" }}>por estúdio · artistas ilimitados</p>
-
-              <div style={{ textAlign: "left", marginBottom: "2rem" }}>
-                {[
-                  "60 gerações por mês",
-                  "6 estilos artísticos",
-                  "Export PNG, SVG e PDF",
-                  "Tamanho físico em cm (300 DPI)",
-                  "Histórico por estúdio",
-                  "PWA — instala sem App Store",
-                  "Papéis dono e artista",
-                ].map(feat => (
-                  <div key={feat} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)", fontSize: 14 }}>
-                    <span style={{ color: "#7C3AED", fontSize: 16 }}>✓</span>
-                    <span style={{ color: "#d4d4d8" }}>{feat}</span>
-                  </div>
-                ))}
-              </div>
-
-              <a href="/login" style={{
-                display: "block", textAlign: "center",
-                background: "#7C3AED", color: "#fff", textDecoration: "none",
-                padding: "14px", borderRadius: 10, fontWeight: 600, fontSize: 15,
-                boxShadow: "0 0 24px rgba(124,58,237,0.35)",
-                transition: "transform 0.15s, box-shadow 0.15s",
-              }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
-              >
-                Começar agora
-              </a>
-            </motion.div>
-          </FadeUp>
-        </Section>
-      </section>
+      <Pricing />
 
       {/* FAQ */}
       <section style={{ padding: "6rem 2rem", background: "#0d0d0f" }}>
