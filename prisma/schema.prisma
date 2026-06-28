@@ -1,0 +1,232 @@
+// Prisma schema — DecalQ (modelo: estúdio paga mensalidade, uso interno com franquia)
+// Multi-tenant: shared DB / shared schema + tenant_id + Row-Level Security.
+// Single-tenant em produção (Júnior Tattoo), mas pronto para múltiplos estúdios.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TenantStatus {
+  active
+  suspended
+  trial
+}
+
+enum UserRole {
+  owner  // dono do estúdio: vê uso, gerencia plano, artistas e marca
+  artist // tatuador: gera decalques livremente (dentro da franquia)
+  staff  // recepção: só histórico
+}
+
+enum LedgerType {
+  consume     // gerou um decalque -> consome unidades da franquia
+  refund      // geração falhou -> devolve unidades
+  monthly_set // reset mensal: franquia recarregada
+  manual      // ajuste manual do admin (bônus/correção)
+}
+
+enum GenStatus {
+  queued
+  processing
+  done
+  failed
+}
+
+enum BillingStatus {
+  pending
+  active
+  past_due
+  canceled
+}
+
+model Tenant {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  status    TenantStatus @default(trial)
+  // tema white-label: { primary, secondary, bg, logoUrl, defaultColor }
+  theme     Json         @default("{}")
+  settings  Json         @default("{}")
+  createdAt DateTime     @default(now())
+
+  // Plano e franquia mensal (em UNIDADES; 1 unidade = 1 crédito = custo-base de IA)
+  planName        String   @default("studio")
+  monthlyAllowance Int     @default(1000) // teto de uso por mês
+  allowanceResetAt DateTime? // quando a franquia foi/“será” recarregada
+
+  domains      TenantDomain[]
+  users        User[]
+  meter        UsageMeter?
+  ledger       LedgerEntry[]
+  billing      Billing?
+  styles       Style[]
+  sourceImages SourceImage[]
+  generations  Generation[]
+
+  @@map("tenants")
+}
+
+model TenantDomain {
+  id        String   @id @default(cuid())
+  tenantId  String
+  host      String   @unique
+  isPrimary Boolean  @default(false)
+  sslStatus String   @default("pending")
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("tenant_domains")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String
+  authId       String   @unique
+  email        String
+  name         String?
+  avatarUrl    String?
+  role         UserRole @default(artist)
+  defaultColor String?  // cor de stencil preferida do artista (hex)
+  createdAt    DateTime @default(now())
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceImages SourceImage[]
+  generations  Generation[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+// Medidor de uso = saldo de franquia restante NO PERÍODO atual.
+model UsageMeter {
+  id        String   @id @default(cuid())
+  tenantId  String   @unique
+  remaining Int      @default(0) // unidades restantes este mês
+  periodStart DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("usage_meters")
+}
+
+// Livro-razão imutável de uso (auditoria de cada unidade consumida/recarregada).
+model LedgerEntry {
+  id           String     @id @default(cuid())
+  tenantId     String
+  amount       Int        // negativo consome, positivo recarrega
+  type         LedgerType
+  generationId String?
+  note         String?
+  createdAt    DateTime   @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("ledger_entries")
+}
+
+// Cobrança do ESTÚDIO -> plataforma (você). B2B, não consumidor.
+model Billing {
+  id              String        @id @default(cuid())
+  tenantId        String        @unique
+  mpPreapprovalId String?       @unique // assinatura recorrente no Mercado Pago
+  amountMonthly   Decimal       @db.Decimal(10, 2)
+  status          BillingStatus @default(pending)
+  currentPeriodEnd DateTime?
+  createdAt       DateTime      @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("billings")
+}
+
+model Style {
+  id             String   @id @default(cuid())
+  tenantId       String?  // null = estilo global, visível a todos os estúdios
+  key            String   // outline | standard | hatching | fine_line | blackwork | lettering
+  label          String
+  description    String   @db.Text @default("")
+  provider       String   @default("replicate")
+  model          String
+  preprocessor   String?  // lineart | canny | scribble | none
+  params         Json     @default("{}")
+  promptTemplate String   @db.Text
+  // Custo em UNIDADES (centi-unidades: 100 = 1 crédito, 150 = 1,5, 300 = 3)
+  costUnits      Int      @default(100)
+  etaSeconds     Int      @default(30)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  tenant      Tenant?      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  generations Generation[]
+
+  @@index([tenantId])
+  @@map("styles")
+}
+
+model SourceImage {
+  id         String   @id @default(cuid())
+  tenantId   String
+  userId     String
+  storageKey String
+  width      Int?
+  height     Int?
+  mime       String?
+  createdAt  DateTime @default(now())
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id])
+  generations Generation[]
+
+  @@index([tenantId])
+  @@map("source_images")
+}
+
+model Generation {
+  id            String    @id @default(cuid())
+  tenantId      String
+  userId        String
+  sourceImageId String?
+  styleId       String
+  status        GenStatus @default(queued)
+  provider      String
+  externalId    String?
+  color         String    @default("#7C3AED") // cor de transferência do stencil (hex)
+  params        Json      @default("{}")
+  resultPngKey  String?   // traço P&B base (reaproveitável p/ recolorir)
+  resultTintKey String?   // versão tintada na cor escolhida
+  costUnits     Int       @default(100) // congelado no momento da criação
+  sizeCm        Json      @default("{}")
+  error         String?
+  createdAt     DateTime  @default(now())
+  completedAt   DateTime?
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id])
+  sourceImage SourceImage? @relation(fields: [sourceImageId], references: [id])
+  style       Style        @relation(fields: [styleId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("generations")
+}
+
+// ---------- Camada global (admin da plataforma = você) ----------
+
+model PlatformAdmin {
+  id        String   @id @default(cuid())
+  authId    String   @unique
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("platform_admins")
+}

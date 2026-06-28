@@ -1,0 +1,12 @@
+# segredos e ambiente
+.env
+.env*.local
+.env.local
+
+# dependências e build
+node_modules
+.next
+out
+
+# sistema
+.DS_Store

@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand: #ffffff;
+  --brand-fg: #111111;
+  --ink: #f4f4f5;
+  --surface: #161618;
+  --bg: #0b0b0c;
+  --font-display: "Georgia", serif;
+  --font-sans: system-ui, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
