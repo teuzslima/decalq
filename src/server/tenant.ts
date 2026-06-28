@@ -46,6 +46,13 @@ export async function resolveTenantByHost(
     if (tenant) return toResolved(tenant);
   }
 
+ // Fallback: estúdio padrão (útil no domínio da Vercel, sem subdomínio)
+  const fallbackSlug = process.env.DEFAULT_TENANT_SLUG;
+  if (fallbackSlug) {
+    const tenant = await prisma.tenant.findUnique({ where: { slug: fallbackSlug } });
+    if (tenant) return toResolved(tenant);
+  }
+
   return null;
 }
 
