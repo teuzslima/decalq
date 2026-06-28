@@ -14,7 +14,7 @@ export default async function BillingPage() {
       <div className="space-y-6">
         <h2 className="font-display text-2xl">Plano do estúdio</h2>
         <div className="rounded-xl border border-white/10 p-6">
-          <div className="font-display text-3xl">{tenant.planName}</div>
+          <div className="font-display text-3xl">{tenant.name}</div>
           <div className="mt-1 text-sm text-ink/50">
             {billing ? `R$ ${Number(billing.amountMonthly).toFixed(2)}/mês · ${billing.status}` : "sem cobrança ativa"}
           </div>
