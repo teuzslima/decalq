@@ -7,6 +7,7 @@ export type ResolvedTenant = {
   name: string;
   slug: string;
   status: string;
+  planName: string;
   theme: Record<string, unknown>;
 };
 
@@ -53,6 +54,7 @@ function toResolved(t: {
   name: string;
   slug: string;
   status: string;
+  planName: string;
   theme: unknown;
 }): ResolvedTenant {
   return {
@@ -60,6 +62,7 @@ function toResolved(t: {
     name: t.name,
     slug: t.slug,
     status: t.status,
+    planName: t.planName,
     theme: (t.theme as Record<string, unknown>) ?? {},
   };
 }
