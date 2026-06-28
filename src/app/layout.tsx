@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "Júnior Tattoo — Stencils",
   description: "Gerador de decalques de tatuagem com IA",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/favicon.png",
+  },
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Stencils" },
 };
 
