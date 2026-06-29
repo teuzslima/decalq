@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { getCurrentTenant, getCurrentUser } from "@/server/context";
 import { getUsage } from "@/server/services/usage";
+import { redirect } from "next/navigation";
 
 export default async function AppShell({ children }: { children: React.ReactNode }) {
   const tenant = await getCurrentTenant();
   const { user } = await getCurrentUser();
+  if (!user) redirect("/login"); // só membros do estúdio entram
   const usage = await getUsage(tenant.id).catch(() => null);
   const logoUrl = (tenant.theme as Record<string, string>)?.logoUrl;
   const isOwner = user?.role === "owner";
@@ -12,6 +14,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
   const nav = [
     { href: "/generate", label: "Criar" },
     { href: "/history", label: "Stencils" },
+    { href: "/account", label: "Conta" },
     ...(isOwner ? [{ href: "/usage", label: "Uso" }, { href: "/settings", label: "Estúdio" }] : []),
   ];
 
