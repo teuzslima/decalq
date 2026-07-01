@@ -1,474 +1,246 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { motion, useInView, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import Pricing from "@/components/Pricing";
+import { motion } from "framer-motion";
+import { Space_Grotesk, Space_Mono } from "next/font/google";
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 32 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
-};
+const display = Space_Grotesk({ subsets: ["latin"], weight: ["500", "600", "700"], display: "swap" });
+const mono = Space_Mono({ subsets: ["latin"], weight: ["400", "700"], display: "swap" });
 
-const stagger = {
-  visible: { transition: { staggerChildren: 0.1 } },
-};
-
-function Section({ children, className = "", style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
+/* Wrapper de revelação ao rolar */
+function Reveal({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
     <motion.div
-      ref={ref}
-      variants={stagger}
-      initial="hidden"
-      animate={inView ? "visible" : "hidden"}
       className={className}
-      style={style}
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.6, delay }}
     >
       {children}
     </motion.div>
   );
 }
 
-function FadeUp({ children, className = "", delay = 0, style }: { children: React.ReactNode; className?: string; delay?: number; style?: React.CSSProperties }) {
-  return (
-    <motion.div
-      variants={{ hidden: { opacity: 0, y: 32 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] } } }}
-      className={className}
-      style={style}
-    >
-      {children}
-    </motion.div>
-  );
-}
+const CropMarks = () => (
+  <>
+    <span className="pointer-events-none absolute -top-px -left-px h-3.5 w-3.5 border-t-2 border-l-2 border-[#7C3AED]" />
+    <span className="pointer-events-none absolute -top-px -right-px h-3.5 w-3.5 border-t-2 border-r-2 border-[#7C3AED]" />
+    <span className="pointer-events-none absolute -bottom-px -left-px h-3.5 w-3.5 border-b-2 border-l-2 border-[#7C3AED]" />
+    <span className="pointer-events-none absolute -bottom-px -right-px h-3.5 w-3.5 border-b-2 border-r-2 border-[#7C3AED]" />
+  </>
+);
 
-const STYLES = [
-  { name: "Outline", desc: "Linhas limpas e precisas", icon: "⬡", color: "#a78bfa" },
-  { name: "Standard", desc: "Equilíbrio clássico", icon: "◈", color: "#818cf8" },
-  { name: "Hatching", desc: "Hachurado expressivo", icon: "▦", color: "#60a5fa" },
-  { name: "Fine Line", desc: "Delicadeza e detalhe", icon: "◇", color: "#34d399" },
-  { name: "Blackwork", desc: "Impacto em preto total", icon: "◼", color: "#f472b6" },
-  { name: "Lettering", desc: "Tipografia via IA", icon: "Aa", color: "#fb923c" },
+const APPS = [
+  { status: "Ativo", soon: false, title: "Tatuagem",
+    desc: "Foto vira stencil pronto pra calcar. Seis estilos, da linha limpa ao blackwork. Exporta em PNG, SVG e PDF no tamanho exato em centímetros.",
+    icon: <><path d="M3 17l6-6 4 4 8-8" /><circle cx="9" cy="11" r="1" /></> },
+  { status: "Em teste", soon: false, title: "Papel de parede",
+    desc: "Foto da parede mais o papel desejado, e a IA mostra o resultado aplicado — perspectiva e luz no lugar. O cliente vê antes de comprar e decide na hora.",
+    icon: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 3v18" /></> },
+  { status: "Em breve", soon: true, title: "Próxima vertical",
+    desc: "Estamos sempre abrindo novas frentes de transformação visual. Tem um caso no seu ramo? Fala com a gente — pode ser o próximo.",
+    icon: <><path d="M12 3v18M3 12h18" /></> },
 ];
 
 const STEPS = [
-  { n: "01", title: "Envie a referência", desc: "Foto, desenho ou imagem — qualquer arquivo funciona." },
-  { n: "02", title: "Escolha o estilo", desc: "6 estilos de stencil. Mude a cor de transferência com um clique." },
-  { n: "03", title: "Baixe e tatue", desc: "PNG, SVG ou PDF no tamanho físico exato em 300 DPI." },
+  { n: "01 — Envie", t: "A imagem que você tem", d: "Uma foto de tatuagem, uma parede, uma referência. Direto do celular." },
+  { n: "02 — Transforme", t: "A IA faz o trabalho", d: "Em segundos, fiel ao original — sem inventar outra coisa no lugar." },
+  { n: "03 — Use", t: "Baixe e aplique", d: "Pronto pra calcar, imprimir ou mostrar ao cliente. No formato e tamanho certos." },
+];
+
+const SPECS = [
+  { k: "Fiel", v: "Decalca a imagem, não inventa outra" },
+  { k: "No celular", v: "App instalável, onde você trabalha" },
+  { k: "Sua marca", v: "Cada negócio com a própria cara" },
+  { k: "Sem amarra", v: "7 dias grátis, sem fidelidade" },
 ];
 
 const FAQS = [
-  { q: "O stencil já vem no tamanho real?", a: "Sim. Você informa as dimensões em cm e o export sai calibrado em 300 DPI para imprimir e transferir direto." },
-  { q: "Precisa de papel de decalque especial?", a: "Não. Use o papel termográfico de sempre. O stencil é exportado pronto para impressão." },
-  { q: "Quantas gerações tenho por mês?", a: "O plano atual inclui 60 gerações/mês por estúdio. Artistas compartilham essa franquia." },
-  { q: "Funciona no iPhone e Android?", a: "Sim. É uma PWA — instala direto pelo navegador, sem App Store, sem comissão de 30%." },
-  { q: "Posso usar para clientes do meu estúdio?", a: "Os stencils gerados são do estúdio. Você pode mostrar opções ao cliente, imprimir e usar normalmente." },
+  { q: "Funciona com qualquer foto?", a: "Funciona melhor com fotos nítidas e bem iluminadas. Quanto mais clara a imagem, mais fiel o resultado — vale escolher uma boa referência." },
+  { q: "Preciso instalar algum programa?", a: "Não. É uma página web que abre no navegador e pode ser instalada no celular como um app, sem loja de aplicativos." },
+  { q: "Posso usar com a marca do meu negócio?", a: "Sim. Cada cliente tem a própria identidade na ferramenta — logo, cores e domínio. Seus clientes veem a sua marca, não a nossa." },
+  { q: "Tem fidelidade ou multa?", a: "Nenhuma. São 7 dias grátis pra testar e, depois, você paga mês a mês. Cancela quando quiser, sem multa." },
 ];
 
 export default function LandingPage() {
-  const heroRef = useRef(null);
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const heroY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
-
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-
   return (
-    <div style={{ background: "#0b0b0c", color: "#f4f4f5", fontFamily: "system-ui, sans-serif", overflowX: "hidden" }}>
-
+    <div className="min-h-screen bg-[#FAFAF7] text-[#15151A] antialiased">
       {/* NAV */}
-      <motion.nav
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        style={{
-          position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "0 2rem", height: "64px",
-          background: "rgba(11,11,12,0.85)", backdropFilter: "blur(16px)",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-        }}
-      >
-        <a href="/" style={{ display: "flex", alignItems: "center", gap: "10px", textDecoration: "none" }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: 8,
-            background: "linear-gradient(135deg, #7C3AED, #4f46e5)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 16, fontWeight: 700, color: "#fff",
-          }}>D</div>
-          <span style={{ fontWeight: 600, fontSize: 18, color: "#f4f4f5" }}>DecalQ</span>
-        </a>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <a href="#como-funciona" style={{ color: "#a1a1aa", fontSize: 14, textDecoration: "none", padding: "6px 12px" }}
-            className="hover:text-white">Como funciona</a>
-          <a href="#estilos" style={{ color: "#a1a1aa", fontSize: 14, textDecoration: "none", padding: "6px 12px" }}>Estilos</a>
-          <a href="#plano" style={{ color: "#a1a1aa", fontSize: 14, textDecoration: "none", padding: "6px 12px" }}>Plano</a>
-          <a href="/login" style={{
-            background: "#7C3AED", color: "#fff", fontSize: 14, fontWeight: 500,
-            textDecoration: "none", padding: "8px 20px", borderRadius: 8,
-          }}>Entrar</a>
+      <nav className="sticky top-0 z-50 border-b border-[#E7E5DE] bg-[#FAFAF7]/85 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-[1080px] items-center justify-between px-6">
+          <div className={`${display.className} text-[1.35rem] font-bold tracking-tight`}>
+            Decal<span className="text-[#7C3AED]">Q</span>
+          </div>
+          <div className="flex items-center gap-7">
+            <a href="#aplicacoes" className="hidden text-[.92rem] text-[#6f6f78] hover:text-[#15151A] sm:block">Aplicações</a>
+            <a href="#como" className="hidden text-[.92rem] text-[#6f6f78] hover:text-[#15151A] sm:block">Como funciona</a>
+            <a href="#planos" className="hidden text-[.92rem] text-[#6f6f78] hover:text-[#15151A] sm:block">Planos</a>
+            <a href="#planos" className="rounded-[10px] bg-[#7C3AED] px-[18px] py-2.5 text-[.92rem] font-semibold text-white transition hover:bg-[#6d28d9]">Testar grátis</a>
+          </div>
         </div>
-      </motion.nav>
+      </nav>
 
       {/* HERO */}
-      <section ref={heroRef} style={{ position: "relative", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", paddingTop: "64px", overflow: "hidden" }}>
-        {/* Background glow */}
-        <motion.div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
-          <div style={{
-            position: "absolute", top: "10%", left: "50%", transform: "translateX(-50%)",
-            width: 600, height: 600, borderRadius: "50%",
-            background: "radial-gradient(ellipse, rgba(124,58,237,0.18) 0%, transparent 70%)",
-          }} />
-        </motion.div>
+      <header className="mx-auto max-w-[1080px] px-6 pb-16 pt-[88px]">
+        <Reveal><div className={`${mono.className} mb-[22px] text-[.72rem] uppercase tracking-[.12em] text-[#6f6f78]`}>Estúdio de IA &nbsp;·&nbsp; entrada → saída</div></Reveal>
+        <Reveal delay={0.05}>
+          <h1 className={`${display.className} max-w-[14ch] text-[clamp(2.4rem,6vw,4.2rem)] font-semibold leading-[1.04] tracking-[-.03em]`}>
+            Sua imagem vira arte <span className="text-[#6f6f78]">pronta pra usar.</span>
+          </h1>
+        </Reveal>
+        <Reveal delay={0.1}>
+          <p className="my-6 max-w-[48ch] text-[1.15rem] text-[#3f3f46]">
+            O DecalQ transforma uma foto no que o seu negócio precisa entregar — em segundos, fiel ao original, direto do celular. Começou com tatuagem. Não vai parar nela.
+          </p>
+        </Reveal>
+        <Reveal delay={0.15}>
+          <div className="flex flex-wrap items-center gap-3.5">
+            <a href="#planos" className="rounded-[10px] bg-[#7C3AED] px-[18px] py-2.5 text-[.92rem] font-semibold text-white transition hover:bg-[#6d28d9]">Testar 7 dias grátis</a>
+            <a href="#aplicacoes" className="rounded-[10px] border border-[#15151A] px-[18px] py-2.5 text-[.92rem] font-semibold transition hover:bg-[#15151A] hover:text-white">Ver aplicações</a>
+          </div>
+        </Reveal>
+        <Reveal delay={0.2}><div className="mt-[18px] text-[.85rem] text-[#6f6f78]">Sem fidelidade · sem cartão no teste · cancela quando quiser</div></Reveal>
 
-        <motion.div style={{ y: heroY, opacity: heroOpacity, textAlign: "center", maxWidth: 720, padding: "0 2rem", position: "relative", zIndex: 1 }}>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.3)",
-              borderRadius: 100, padding: "6px 16px", marginBottom: "2rem",
-              fontSize: 13, color: "#a78bfa",
-            }}
-          >
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#7C3AED", display: "inline-block" }} />
-            IA para estúdios de tatuagem
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            style={{ fontSize: "clamp(2.4rem, 6vw, 4.5rem)", fontWeight: 700, lineHeight: 1.1, marginBottom: "1.5rem", letterSpacing: "-0.02em" }}
-          >
-            Stencils de tatuagem{" "}
-            <span style={{ background: "linear-gradient(135deg, #7C3AED, #60a5fa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              gerados por IA
-            </span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-            style={{ fontSize: "1.2rem", color: "#a1a1aa", lineHeight: 1.7, marginBottom: "2.5rem", maxWidth: 560, margin: "0 auto 2.5rem" }}
-          >
-            Da foto ao decalque em segundos. 6 estilos artísticos, export em tamanho físico real, sem App Store.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.35, ease: "easeOut" }}
-            style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}
-          >
-            <a href="/login" style={{
-              background: "#7C3AED", color: "#fff", fontSize: 16, fontWeight: 600,
-              textDecoration: "none", padding: "14px 32px", borderRadius: 10,
-              display: "inline-flex", alignItems: "center", gap: 8,
-              transition: "transform 0.15s, box-shadow 0.15s",
-              boxShadow: "0 0 24px rgba(124,58,237,0.4)",
-            }}
-              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 0 36px rgba(124,58,237,0.5)"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 0 24px rgba(124,58,237,0.4)"; }}
-            >
-              Começar grátis →
-            </a>
-            <a href="#como-funciona" style={{
-              background: "rgba(255,255,255,0.05)", color: "#f4f4f5", fontSize: 16, fontWeight: 500,
-              textDecoration: "none", padding: "14px 28px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)",
-            }}>
-              Ver como funciona
-            </a>
-          </motion.div>
-
-          {/* Stats */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.55 }}
-            style={{ display: "flex", gap: "2rem", justifyContent: "center", marginTop: "3.5rem", flexWrap: "wrap" }}
-          >
-            {[
-              { v: "6", l: "estilos artísticos" },
-              { v: "300 DPI", l: "export físico" },
-              { v: "PWA", l: "sem App Store" },
-            ].map(s => (
-              <div key={s.l} style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "#f4f4f5" }}>{s.v}</div>
-                <div style={{ fontSize: 13, color: "#71717a", marginTop: 2 }}>{s.l}</div>
+        {/* PAINEL ASSINATURA: antes → depois */}
+        <Reveal delay={0.25}>
+          <div className="relative mt-16 rounded-md border border-[#E7E5DE] bg-white p-7">
+            <CropMarks />
+            <div className="grid grid-cols-1 items-stretch md:grid-cols-[1fr_auto_1fr]">
+              {/* ENTRADA — troque por <img> da foto real */}
+              <div className="relative flex min-h-[220px] items-end rounded p-4 md:min-h-[300px]" style={{ background: "linear-gradient(135deg,#d9d6cf,#b9b4ab)" }}>
+                <span className={`${mono.className} absolute left-3.5 top-3.5 text-[.72rem] uppercase tracking-[.12em] text-white`}>Entrada · foto</span>
               </div>
-            ))}
-          </motion.div>
-        </motion.div>
-
-        {/* Scroll indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 0.5 }}
-          style={{ position: "absolute", bottom: "2rem", left: "50%", transform: "translateX(-50%)" }}
-        >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
-            style={{ width: 1, height: 40, background: "linear-gradient(to bottom, rgba(124,58,237,0.6), transparent)", margin: "0 auto" }}
-          />
-        </motion.div>
-      </section>
-
-      {/* DEMO MOCKUP */}
-      <Section style={{ padding: "4rem 2rem", maxWidth: 900, margin: "0 auto" }}>
-        <FadeUp>
-          <div style={{
-            background: "#161618", border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 20, overflow: "hidden",
-            boxShadow: "0 0 80px rgba(124,58,237,0.12), 0 40px 80px rgba(0,0,0,0.4)",
-          }}>
-            {/* Browser bar */}
-            <div style={{ background: "#111113", padding: "12px 16px", display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-              <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#ef4444" }} />
-              <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#eab308" }} />
-              <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#22c55e" }} />
-              <div style={{ flex: 1, background: "#1e1e20", borderRadius: 6, padding: "5px 12px", fontSize: 12, color: "#71717a", marginLeft: 8 }}>
-                decalq.site/generate
+              <div className="flex items-center justify-center py-3 md:w-14 md:py-0">
+                <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-[#7C3AED] text-[1.1rem] font-bold text-white">→</div>
               </div>
-            </div>
-            {/* App mockup */}
-            <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", minHeight: 360 }}>
-              <div style={{ borderRight: "1px solid rgba(255,255,255,0.06)", padding: "1.5rem" }}>
-                <div style={{ fontSize: 12, color: "#71717a", marginBottom: "1rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>Configurar stencil</div>
-                {["Outline", "Fine Line", "Blackwork"].map((s, i) => (
-                  <motion.div
-                    key={s}
-                    initial={{ opacity: 0, x: -12 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.1 + 0.3 }}
-                    style={{
-                      padding: "10px 12px", borderRadius: 8, marginBottom: 6, cursor: "pointer",
-                      background: i === 0 ? "rgba(124,58,237,0.2)" : "transparent",
-                      border: i === 0 ? "1px solid rgba(124,58,237,0.4)" : "1px solid transparent",
-                      fontSize: 14, color: i === 0 ? "#a78bfa" : "#a1a1aa",
-                    }}
-                  >{s}</motion.div>
-                ))}
-                <div style={{ marginTop: "1.5rem" }}>
-                  <div style={{ fontSize: 12, color: "#71717a", marginBottom: 8 }}>Cor de transferência</div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {["#7C3AED", "#3b82f6", "#ef4444", "#22c55e"].map((c, i) => (
-                      <div key={c} style={{ width: 24, height: 24, borderRadius: "50%", background: c, border: i === 0 ? "2px solid #fff" : "2px solid transparent" }} />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div style={{ padding: "1.5rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <div style={{ textAlign: "center" }}>
-                  <motion.div
-                    animate={{ opacity: [0.4, 1, 0.4] }}
-                    transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
-                    style={{ fontSize: 64, marginBottom: "1rem" }}
-                  >🌸</motion.div>
-                  <div style={{ fontSize: 14, color: "#71717a" }}>Stencil gerado • Outline</div>
-                  <div style={{ marginTop: "1rem", display: "flex", gap: 8, justifyContent: "center" }}>
-                    {["PNG", "SVG", "PDF"].map(f => (
-                      <div key={f} style={{
-                        padding: "4px 12px", borderRadius: 6, fontSize: 12,
-                        background: "rgba(124,58,237,0.12)", color: "#a78bfa",
-                        border: "1px solid rgba(124,58,237,0.2)",
-                      }}>{f}</div>
-                    ))}
-                  </div>
-                </div>
+              {/* SAÍDA — troque por <img> do stencil real */}
+              <div className="relative flex min-h-[220px] items-center justify-center rounded border border-[#E7E5DE] bg-white p-4 md:min-h-[300px]">
+                <span className={`${mono.className} absolute left-3.5 top-3.5 text-[.72rem] uppercase tracking-[.12em] text-[#6f6f78]`}>Saída · decalque</span>
+                <svg width="150" height="200" viewBox="0 0 150 200" fill="none" stroke="#15151A" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M75 30 C 55 30, 45 50, 48 72 C 50 92, 62 104, 75 104 C 88 104, 100 92, 102 72 C 105 50, 95 30, 75 30 Z" />
+                  <path d="M58 64 q 7 -8 16 -2 M76 62 q 8 -6 16 1" />
+                  <path d="M75 78 l -4 12 l 8 0 Z" />
+                  <path d="M64 96 q 11 8 22 0" />
+                  <path d="M75 104 C 60 116, 50 140, 52 175 M75 104 C 90 116, 100 140, 98 175" />
+                  <path d="M52 150 q 23 -10 46 0" />
+                </svg>
               </div>
             </div>
           </div>
-        </FadeUp>
-      </Section>
+        </Reveal>
+      </header>
+
+      {/* APLICAÇÕES */}
+      <section id="aplicacoes" className="border-t border-[#E7E5DE] py-[72px]">
+        <div className="mx-auto max-w-[1080px] px-6">
+          <div className="mb-10 flex flex-wrap items-baseline gap-4">
+            <Reveal><h2 className={`${display.className} text-[clamp(1.7rem,3.5vw,2.4rem)] font-semibold tracking-[-.02em]`}>Uma ferramenta, vários negócios</h2></Reveal>
+            <Reveal delay={0.1}><p className="max-w-[46ch] text-[#6f6f78]">A mesma IA que decalca uma tatuagem aplica um papel numa parede. Toda imagem que precisa virar entregável profissional cabe aqui.</p></Reveal>
+          </div>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+            {APPS.map((a, i) => (
+              <Reveal key={a.title} delay={i * 0.08}>
+                <div className="group relative h-full rounded-md border border-[#E7E5DE] bg-white p-[26px] transition hover:-translate-y-1 hover:shadow-[0_12px_30px_-18px_rgba(0,0,0,.25)]">
+                  <span className={`${mono.className} float-right rounded-full px-2 py-[3px] text-[.62rem] tracking-[.1em] ${a.soon ? "bg-[#f4f4f5] text-[#6f6f78]" : "bg-[#F2ECFF] text-[#7C3AED]"}`}>{a.status}</span>
+                  <svg className="mb-[18px] h-10 w-10 text-[#7C3AED]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">{a.icon}</svg>
+                  <h3 className={`${display.className} mb-2 text-[1.25rem] font-semibold`}>{a.title}</h3>
+                  <p className="text-[.95rem] text-[#52525b]">{a.desc}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* COMO FUNCIONA */}
-      <section id="como-funciona" style={{ padding: "6rem 2rem" }}>
-        <Section style={{ maxWidth: 900, margin: "0 auto" }}>
-          <FadeUp style={{ textAlign: "center", marginBottom: "4rem" }}>
-            <div style={{ fontSize: 13, color: "#a78bfa", fontWeight: 500, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              Simples assim
-            </div>
-            <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", fontWeight: 700, letterSpacing: "-0.02em" }}>
-              Do upload ao stencil em 3 passos
-            </h2>
-          </FadeUp>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1.5rem" }}>
-            {STEPS.map((step, i) => (
-              <FadeUp key={step.n} delay={i * 0.12}>
-                <motion.div
-                  whileHover={{ y: -4, borderColor: "rgba(124,58,237,0.4)" }}
-                  transition={{ duration: 0.2 }}
-                  style={{
-                    background: "#161618", border: "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: 16, padding: "2rem",
-                  }}
-                >
-                  <div style={{
-                    fontSize: 13, fontWeight: 700, color: "#7C3AED",
-                    marginBottom: "1rem", fontFamily: "monospace",
-                  }}>{step.n}</div>
-                  <h3 style={{ fontSize: "1.1rem", fontWeight: 600, marginBottom: 8 }}>{step.title}</h3>
-                  <p style={{ fontSize: 14, color: "#71717a", lineHeight: 1.6, margin: 0 }}>{step.desc}</p>
-                </motion.div>
-              </FadeUp>
+      <section id="como" className="border-t border-[#E7E5DE] py-[72px]">
+        <div className="mx-auto max-w-[1080px] px-6">
+          <Reveal><h2 className={`${display.className} mb-10 text-[clamp(1.7rem,3.5vw,2.4rem)] font-semibold tracking-[-.02em]`}>Como funciona</h2></Reveal>
+          <div className="grid grid-cols-1 gap-7 md:grid-cols-3">
+            {STEPS.map((s, i) => (
+              <Reveal key={s.n} delay={i * 0.08}>
+                <div>
+                  <span className={`${mono.className} mb-3.5 inline-block border-t-2 border-[#7C3AED] pt-2.5 text-[.8rem] text-[#7C3AED]`}>{s.n}</span>
+                  <h3 className={`${display.className} mb-1.5 text-[1.15rem] font-semibold`}>{s.t}</h3>
+                  <p className="text-[.96rem] text-[#52525b]">{s.d}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
-        </Section>
+        </div>
       </section>
 
-      {/* ESTILOS */}
-      <section id="estilos" style={{ padding: "6rem 2rem", background: "#0d0d0f" }}>
-        <Section style={{ maxWidth: 1000, margin: "0 auto" }}>
-          <FadeUp style={{ textAlign: "center", marginBottom: "4rem" }}>
-            <div style={{ fontSize: 13, color: "#a78bfa", fontWeight: 500, marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              6 estilos disponíveis
+      {/* POR QUE */}
+      <section className="border-t border-[#E7E5DE] py-[72px]">
+        <div className="mx-auto max-w-[1080px] px-6">
+          <Reveal><h2 className={`${display.className} mb-10 text-[clamp(1.7rem,3.5vw,2.4rem)] font-semibold tracking-[-.02em]`}>Por que DecalQ</h2></Reveal>
+          <Reveal delay={0.1}>
+            <div className="grid grid-cols-1 overflow-hidden rounded-md border border-[#E7E5DE] bg-white sm:grid-cols-2">
+              {SPECS.map((s, i) => (
+                <div key={s.k} className={`p-[26px] ${i % 2 === 0 ? "sm:border-r" : ""} ${i < SPECS.length - 2 ? "border-b" : ""} border-[#E7E5DE]`}>
+                  <div className={`${mono.className} mb-2 text-[.72rem] uppercase tracking-[.12em] text-[#6f6f78]`}>{s.k}</div>
+                  <div className={`${display.className} text-[1.1rem] font-medium`}>{s.v}</div>
+                </div>
+              ))}
             </div>
-            <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.8rem)", fontWeight: 700, letterSpacing: "-0.02em" }}>
-              Para cada traço, um estilo
-            </h2>
-          </FadeUp>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1rem" }}>
-            {STYLES.map((style, i) => (
-              <FadeUp key={style.name} delay={i * 0.08}>
-                <motion.div
-                  whileHover={{ scale: 1.04, y: -4 }}
-                  transition={{ duration: 0.2 }}
-                  style={{
-                    background: "#161618", border: "1px solid rgba(255,255,255,0.07)",
-                    borderRadius: 14, padding: "1.5rem 1rem", textAlign: "center", cursor: "default",
-                  }}
-                >
-                  <div style={{ fontSize: 32, marginBottom: 12, filter: `drop-shadow(0 0 12px ${style.color}60)` }}>
-                    {style.icon}
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4, color: style.color }}>{style.name}</div>
-                  <div style={{ fontSize: 12, color: "#71717a", lineHeight: 1.4 }}>{style.desc}</div>
-                </motion.div>
-              </FadeUp>
-            ))}
-          </div>
-        </Section>
+          </Reveal>
+        </div>
       </section>
 
-      {/* PRICING */}
-      <Pricing />
+      {/* PLANOS */}
+      <section id="planos" className="border-t border-[#E7E5DE] py-[72px]">
+        <div className="mx-auto max-w-[1080px] px-6">
+          <Reveal>
+            <div className="flex flex-wrap items-center justify-between gap-6 rounded-[10px] bg-[#15151A] p-11 text-white">
+              <div>
+                <div className={`${mono.className} mb-2.5 text-[.72rem] uppercase tracking-[.12em] text-[#a78bfa]`}>Planos</div>
+                <h2 className={`${display.className} text-[clamp(1.7rem,3.5vw,2.4rem)] font-semibold tracking-[-.02em] text-white`}>Comece grátis. Pague só se valer.</h2>
+                <p className="mt-2 text-[#a1a1aa]">Planos a partir de R$ 19,90/mês · 7 dias grátis · sem fidelidade.</p>
+              </div>
+              <div className="text-right">
+                <div className={`${display.className} text-[2.2rem] font-bold`}>R$ 19,90<small className="text-[1rem] font-normal text-[#a1a1aa]">/mês</small></div>
+                <a href="#" className="mt-3.5 inline-block rounded-[10px] bg-[#7C3AED] px-[18px] py-2.5 text-[.92rem] font-semibold text-white transition hover:bg-[#6d28d9]">Ver planos</a>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
 
       {/* FAQ */}
-      <section style={{ padding: "6rem 2rem", background: "#0d0d0f" }}>
-        <Section style={{ maxWidth: 680, margin: "0 auto" }}>
-          <FadeUp style={{ textAlign: "center", marginBottom: "3rem" }}>
-            <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.5rem)", fontWeight: 700, letterSpacing: "-0.02em" }}>
-              Perguntas frequentes
-            </h2>
-          </FadeUp>
-
-          <div>
-            {FAQS.map((faq, i) => (
-              <FadeUp key={i} delay={i * 0.06}>
-                <div
-                  style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
-                >
-                  <button
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                    style={{
-                      width: "100%", textAlign: "left", padding: "1.25rem 0",
-                      background: "none", border: "none", cursor: "pointer",
-                      display: "flex", justifyContent: "space-between", alignItems: "center",
-                      color: "#f4f4f5", fontSize: 15, fontWeight: 500,
-                    }}
-                  >
-                    {faq.q}
-                    <motion.span
-                      animate={{ rotate: openFaq === i ? 45 : 0 }}
-                      transition={{ duration: 0.2 }}
-                      style={{ fontSize: 20, color: "#7C3AED", flexShrink: 0, marginLeft: 12 }}
-                    >+</motion.span>
-                  </button>
-                  <AnimatePresence>
-                    {openFaq === i && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25, ease: "easeInOut" }}
-                        style={{ overflow: "hidden" }}
-                      >
-                        <p style={{ padding: "0 0 1.25rem", color: "#71717a", fontSize: 14, lineHeight: 1.7, margin: 0 }}>
-                          {faq.a}
-                        </p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </FadeUp>
-            ))}
-          </div>
-        </Section>
+      <section className="border-t border-[#E7E5DE] py-[72px]">
+        <div className="mx-auto max-w-[1080px] px-6">
+          <Reveal><h2 className={`${display.className} mb-10 text-[clamp(1.7rem,3.5vw,2.4rem)] font-semibold tracking-[-.02em]`}>Perguntas frequentes</h2></Reveal>
+          <Reveal delay={0.1}>
+            <div>
+              {FAQS.map((f) => (
+                <details key={f.q} className="group cursor-pointer border-b border-[#E7E5DE] py-[18px]">
+                  <summary className={`${display.className} flex list-none items-center justify-between text-[1.08rem] font-medium [&::-webkit-details-marker]:hidden`}>
+                    {f.q}
+                    <span className="text-[1.4rem] text-[#7C3AED] group-open:hidden">+</span>
+                    <span className="hidden text-[1.4rem] text-[#7C3AED] group-open:inline">–</span>
+                  </summary>
+                  <p className="mt-3 max-w-[60ch] text-[#52525b]">{f.a}</p>
+                </details>
+              ))}
+            </div>
+          </Reveal>
+        </div>
       </section>
 
       {/* CTA FINAL */}
-      <section style={{ padding: "8rem 2rem" }}>
-        <Section style={{ maxWidth: 640, margin: "0 auto", textAlign: "center" }}>
-          <FadeUp>
-            <motion.div
-              style={{
-                background: "linear-gradient(135deg, rgba(124,58,237,0.12), rgba(96,165,250,0.08))",
-                border: "1px solid rgba(124,58,237,0.2)",
-                borderRadius: 24, padding: "4rem 3rem",
-                position: "relative", overflow: "hidden",
-              }}
-            >
-              <div style={{
-                position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)",
-                width: 400, height: 400, borderRadius: "50%",
-                background: "radial-gradient(ellipse, rgba(124,58,237,0.1) 0%, transparent 70%)",
-                pointerEvents: "none",
-              }} />
-              <h2 style={{ fontSize: "clamp(1.6rem, 4vw, 2.4rem)", fontWeight: 700, letterSpacing: "-0.02em", marginBottom: "1rem", position: "relative" }}>
-                Pronto para gerar seu primeiro stencil?
-              </h2>
-              <p style={{ color: "#71717a", fontSize: 15, lineHeight: 1.6, marginBottom: "2rem", position: "relative" }}>
-                Instale como app, gere stencils com IA e leve o fluxo do seu estúdio para outro nível.
-              </p>
-              <a href="/login" style={{
-                display: "inline-block",
-                background: "#7C3AED", color: "#fff", textDecoration: "none",
-                padding: "14px 36px", borderRadius: 10, fontWeight: 600, fontSize: 16,
-                boxShadow: "0 0 32px rgba(124,58,237,0.4)",
-                position: "relative",
-              }}>
-                Começar agora →
-              </a>
-            </motion.div>
-          </FadeUp>
-        </Section>
-      </section>
+      <div className="px-6 py-[88px] text-center">
+        <Reveal><h2 className={`${display.className} mb-3.5 text-[clamp(1.9rem,4vw,2.6rem)] font-semibold`}>Transforme sua primeira imagem hoje.</h2></Reveal>
+        <Reveal delay={0.05}><p className="mb-7 text-[#6f6f78]">Grátis por 7 dias. Sem cartão, sem compromisso.</p></Reveal>
+        <Reveal delay={0.1}><a href="#" className="inline-block rounded-[10px] bg-[#7C3AED] px-7 py-3.5 text-[1rem] font-semibold text-white transition hover:bg-[#6d28d9]">Começar agora</a></Reveal>
+      </div>
 
       {/* FOOTER */}
-      <footer style={{ borderTop: "1px solid rgba(255,255,255,0.07)", padding: "2.5rem 2rem", textAlign: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginBottom: "1rem" }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 7,
-            background: "linear-gradient(135deg, #7C3AED, #4f46e5)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 14, fontWeight: 700, color: "#fff",
-          }}>D</div>
-          <span style={{ fontWeight: 600, fontSize: 16, color: "#f4f4f5" }}>DecalQ</span>
+      <footer className="border-t border-[#E7E5DE] py-10 text-[.88rem] text-[#6f6f78]">
+        <div className="mx-auto flex max-w-[1080px] flex-wrap items-center justify-between gap-3 px-6">
+          <div className={`${display.className} text-[1.1rem] font-bold text-[#15151A]`}>Decal<span className="text-[#7C3AED]">Q</span></div>
+          <div>decalq.site · feito em Aracaju</div>
+          <div className={`${mono.className} text-[.72rem]`}>© 2026</div>
         </div>
-        <p style={{ fontSize: 13, color: "#52525b", margin: 0 }}>
-          © {new Date().getFullYear()} DecalQ · Stencils com IA para estúdios de tatuagem
-        </p>
       </footer>
     </div>
   );
